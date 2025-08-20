@@ -9,6 +9,8 @@ export interface AutoMarkReadRequest {
 export interface AutoMarkReadResponse {
   markedMessages: Array<{
     id: number;
+    senderId: number;
+    recipientId: number;
     expiresAt: Date;
     timeToRead: number;
   }>;
@@ -25,6 +27,8 @@ export const autoMarkRead = api<AutoMarkReadRequest, AutoMarkReadResponse>(
 
     const markedMessages: Array<{
       id: number;
+      senderId: number;
+      recipientId: number;
       expiresAt: Date;
       timeToRead: number;
     }> = [];
@@ -33,11 +37,12 @@ export const autoMarkRead = api<AutoMarkReadRequest, AutoMarkReadResponse>(
       // Get the message and verify the user is the recipient
       const message = await messagesDB.queryRow<{
         id: number;
+        sender_id: number;
         recipient_id: number;
         word_count: number;
         is_read: boolean;
       }>`
-        SELECT id, recipient_id, word_count, is_read
+        SELECT id, sender_id, recipient_id, word_count, is_read
         FROM messages
         WHERE id = ${messageId} AND recipient_id = ${currentUserId} AND is_read = FALSE
       `;
@@ -56,6 +61,8 @@ export const autoMarkRead = api<AutoMarkReadRequest, AutoMarkReadResponse>(
 
         markedMessages.push({
           id: messageId,
+          senderId: message.sender_id,
+          recipientId: message.recipient_id,
           expiresAt,
           timeToRead: baseSeconds,
         });

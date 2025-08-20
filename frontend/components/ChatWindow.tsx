@@ -49,7 +49,7 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
            (message.userId === currentUser.id && message.recipientId === otherUser.id))) {
         await loadMessages();
       } else if (message.type === "message_read") {
-        // Update the specific message that was read
+        // Update the specific message that was read for both sender and recipient
         setMessages(prev => prev.map(msg => {
           if (msg.id === message.messageId) {
             return {
@@ -123,12 +123,14 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
 
           setMessages(updatedMessages);
 
-          // Broadcast read status for each marked message
+          // Broadcast read status for each marked message to both sender and recipient
           if (realtimeStream) {
             for (const markedMessage of autoMarkResponse.markedMessages) {
               await realtimeStream.send({
                 type: "message_read",
                 messageId: markedMessage.id,
+                senderId: markedMessage.senderId,
+                recipientId: markedMessage.recipientId,
                 expiresAt: markedMessage.expiresAt,
                 timeToRead: markedMessage.timeToRead,
                 timestamp: new Date(),

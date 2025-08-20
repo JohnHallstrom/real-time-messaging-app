@@ -5,6 +5,7 @@ export interface ChatMessage {
   userId?: number;
   username?: string;
   recipientId?: number;
+  senderId?: number;
   messageId?: number;
   content?: string;
   wordCount?: number;
@@ -47,8 +48,27 @@ export const chat = api.streamInOut<ChatMessage, ChatMessage>(
             }
           }
         } else if (message.type === "message_read") {
-          // Broadcast read status to all connected clients involved in the conversation
-          broadcastToAll(message);
+          // Broadcast read status to both sender and recipient
+          if (message.senderId && message.recipientId) {
+            const senderStream = connectedStreams.get(message.senderId);
+            const recipientStream = connectedStreams.get(message.recipientId);
+            
+            if (senderStream) {
+              try {
+                await senderStream.send(message);
+              } catch (err) {
+                connectedStreams.delete(message.senderId);
+              }
+            }
+            
+            if (recipientStream) {
+              try {
+                await recipientStream.send(message);
+              } catch (err) {
+                connectedStreams.delete(message.recipientId);
+              }
+            }
+          }
         }
       }
     } finally {
