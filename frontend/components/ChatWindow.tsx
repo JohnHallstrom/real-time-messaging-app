@@ -48,11 +48,33 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
           ((message.userId === otherUser.id && message.recipientId === currentUser.id) ||
            (message.userId === currentUser.id && message.recipientId === otherUser.id))) {
         await loadMessages();
+      } else if (message.type === "message_read") {
+        // Update the specific message that was read
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === message.messageId) {
+            return {
+              ...msg,
+              isRead: true,
+              readAt: new Date(),
+              expiresAt: new Date(message.expiresAt),
+              timeToRead: message.timeToRead,
+            };
+          }
+          return msg;
+        }));
       }
     };
 
-    // Note: In a real implementation, you'd need to properly handle the stream
-    // This is a simplified version for the example
+    // Listen for real-time updates
+    (async () => {
+      try {
+        for await (const message of realtimeStream) {
+          await handleRealtimeMessage(message);
+        }
+      } catch (err) {
+        console.error('Realtime stream error:', err);
+      }
+    })();
   }, [realtimeStream, otherUser.id, currentUser.id]);
 
   const loadMessages = async () => {
@@ -108,6 +130,7 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
                 type: "message_read",
                 messageId: markedMessage.id,
                 expiresAt: markedMessage.expiresAt,
+                timeToRead: markedMessage.timeToRead,
                 timestamp: new Date(),
               });
             }

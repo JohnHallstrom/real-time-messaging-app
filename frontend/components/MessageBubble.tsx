@@ -71,7 +71,7 @@ export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) 
               </div>
             )}
             
-            {message.isRead && !isOwn && !showTimer && (
+            {message.isRead && !showTimer && (
               <span className="text-green-500">Read</span>
             )}
           </div>

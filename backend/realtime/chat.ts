@@ -10,6 +10,7 @@ export interface ChatMessage {
   wordCount?: number;
   isOnline?: boolean;
   expiresAt?: Date;
+  timeToRead?: number;
   timestamp: Date;
 }
 
@@ -46,7 +47,7 @@ export const chat = api.streamInOut<ChatMessage, ChatMessage>(
             }
           }
         } else if (message.type === "message_read") {
-          // Broadcast read status to all connected clients
+          // Broadcast read status to all connected clients involved in the conversation
           broadcastToAll(message);
         }
       }
