@@ -11,11 +11,16 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [shouldRemove, setShouldRemove] = useState(false);
 
   useEffect(() => {
     if (timeLeft === 0) {
       // Start fade out animation
       setIsVisible(false);
+      // After animation completes, mark for removal
+      setTimeout(() => {
+        setShouldRemove(true);
+      }, 500); // Match the transition duration
     }
   }, [timeLeft]);
 
@@ -31,6 +36,11 @@ export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) 
 
   const showTimer = message.isRead && message.expiresAt && timeLeft !== undefined;
   const timeToReadSeconds = message.timeToRead || Math.max(5, Math.ceil(message.wordCount / 5) * 5);
+
+  // Don't render if marked for removal
+  if (shouldRemove) {
+    return null;
+  }
 
   return (
     <div 
@@ -67,13 +77,11 @@ export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) 
           </div>
         </div>
         
-        <div className="text-xs text-gray-500 mt-1">
-          {!message.isRead && !isOwn ? (
-            `${timeToReadSeconds}s to read once opened`
-          ) : (
-            `${message.wordCount} word${message.wordCount !== 1 ? 's' : ''}`
-          )}
-        </div>
+        {!message.isRead && !isOwn && (
+          <div className="text-xs text-gray-500 mt-1">
+            {timeToReadSeconds}s to read once opened
+          </div>
+        )}
       </div>
     </div>
   );

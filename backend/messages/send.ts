@@ -5,6 +5,7 @@ export interface SendMessageRequest {
   token: string;
   recipientId: number;
   content: string;
+  extraTime?: number;
 }
 
 export interface SendMessageResponse {

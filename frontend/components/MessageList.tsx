@@ -25,10 +25,10 @@ export function MessageList({ messages, currentUserId, onMessageExpired }: Messa
           
           if (timeLeft <= 0) {
             clearInterval(interval);
-            // Trigger message expiration with a small delay to show 0 seconds
+            // Trigger message expiration with a delay to allow fade animation
             setTimeout(() => {
               onMessageExpired(message.id);
-            }, 100);
+            }, 600); // Slightly longer than the CSS transition
           }
         }, 1000);
         
