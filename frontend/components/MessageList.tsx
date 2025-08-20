@@ -5,10 +5,10 @@ import type { Message } from './ChatWindow';
 interface MessageListProps {
   messages: Message[];
   currentUserId: number;
-  onMarkAsRead: (messageId: number) => void;
+  onMessageExpired: (messageId: number) => void;
 }
 
-export function MessageList({ messages, currentUserId, onMarkAsRead }: MessageListProps) {
+export function MessageList({ messages, currentUserId, onMessageExpired }: MessageListProps) {
   const [timers, setTimers] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
@@ -25,6 +25,10 @@ export function MessageList({ messages, currentUserId, onMarkAsRead }: MessageLi
           
           if (timeLeft <= 0) {
             clearInterval(interval);
+            // Trigger message expiration with a small delay to show 0 seconds
+            setTimeout(() => {
+              onMessageExpired(message.id);
+            }, 100);
           }
         }, 1000);
         
@@ -35,7 +39,7 @@ export function MessageList({ messages, currentUserId, onMarkAsRead }: MessageLi
     return () => {
       intervals.forEach(clearInterval);
     };
-  }, [messages]);
+  }, [messages, onMessageExpired]);
 
   if (messages.length === 0) {
     return (
@@ -56,7 +60,6 @@ export function MessageList({ messages, currentUserId, onMarkAsRead }: MessageLi
           message={message}
           isOwn={message.senderId === currentUserId}
           timeLeft={timers.get(message.id)}
-          onMarkAsRead={onMarkAsRead}
         />
       ))}
     </div>

@@ -17,15 +17,17 @@ export interface Message {
   readAt?: Date;
   expiresAt?: Date;
   createdAt: Date;
+  timeToRead?: number;
 }
 
 interface ChatWindowProps {
   currentUser: User;
   otherUser: ChatUser;
   realtimeStream: any;
+  onMessagesUpdate: () => void;
 }
 
-export function ChatWindow({ currentUser, otherUser, realtimeStream }: ChatWindowProps) {
+export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesUpdate }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,12 +62,63 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream }: ChatWindo
         token: currentUser.token,
         otherUserId: otherUser.id,
       });
-      setMessages(response.messages.map(msg => ({
+      
+      const messagesWithDates = response.messages.map(msg => ({
         ...msg,
         createdAt: new Date(msg.createdAt),
         readAt: msg.readAt ? new Date(msg.readAt) : undefined,
         expiresAt: msg.expiresAt ? new Date(msg.expiresAt) : undefined,
-      })));
+      }));
+
+      setMessages(messagesWithDates);
+
+      // Auto-mark unread messages as read
+      const unreadMessages = messagesWithDates.filter(
+        msg => msg.recipientId === currentUser.id && !msg.isRead
+      );
+
+      if (unreadMessages.length > 0) {
+        try {
+          const autoMarkResponse = await backend.messages.autoMarkRead({
+            token: currentUser.token,
+            messageIds: unreadMessages.map(msg => msg.id),
+          });
+
+          // Update messages with expiration info
+          const updatedMessages = messagesWithDates.map(msg => {
+            const markedMessage = autoMarkResponse.markedMessages.find(m => m.id === msg.id);
+            if (markedMessage) {
+              return {
+                ...msg,
+                isRead: true,
+                readAt: new Date(),
+                expiresAt: new Date(markedMessage.expiresAt),
+                timeToRead: markedMessage.timeToRead,
+              };
+            }
+            return msg;
+          });
+
+          setMessages(updatedMessages);
+
+          // Broadcast read status for each marked message
+          if (realtimeStream) {
+            for (const markedMessage of autoMarkResponse.markedMessages) {
+              await realtimeStream.send({
+                type: "message_read",
+                messageId: markedMessage.id,
+                expiresAt: markedMessage.expiresAt,
+                timestamp: new Date(),
+              });
+            }
+          }
+
+          // Update unread counts
+          onMessagesUpdate();
+        } catch (err) {
+          console.error('Failed to auto-mark messages as read:', err);
+        }
+      }
     } catch (err) {
       console.error('Failed to load messages:', err);
     } finally {
@@ -101,27 +154,9 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream }: ChatWindo
     }
   };
 
-  const handleMarkAsRead = async (messageId: number) => {
-    try {
-      const response = await backend.messages.markRead({
-        token: currentUser.token,
-        messageId,
-      });
-
-      // Broadcast read status
-      if (realtimeStream) {
-        await realtimeStream.send({
-          type: "message_read",
-          messageId,
-          expiresAt: response.expiresAt,
-          timestamp: new Date(),
-        });
-      }
-
-      await loadMessages();
-    } catch (err) {
-      console.error('Failed to mark message as read:', err);
-    }
+  const handleMessageExpired = (messageId: number) => {
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    onMessagesUpdate();
   };
 
   const scrollToBottom = () => {
@@ -167,7 +202,7 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream }: ChatWindo
           <MessageList
             messages={messages}
             currentUserId={currentUser.id}
-            onMarkAsRead={handleMarkAsRead}
+            onMessageExpired={handleMessageExpired}
           />
         )}
         <div ref={messagesEndRef} />

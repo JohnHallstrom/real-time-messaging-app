@@ -1,5 +1,6 @@
 import React from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { ChatUser } from './ChatInterface';
 
@@ -36,7 +37,7 @@ export function UserList({ users, selectedUser, onSelectUser }: UserListProps) {
               key={user.id}
               onClick={() => onSelectUser(user)}
               className={cn(
-                "w-full p-4 text-left hover:bg-gray-50 transition-colors",
+                "w-full p-4 text-left hover:bg-gray-50 transition-colors relative",
                 selectedUser?.id === user.id && "bg-blue-50 border-r-2 border-blue-500"
               )}
             >
@@ -55,9 +56,19 @@ export function UserList({ users, selectedUser, onSelectUser }: UserListProps) {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {user.username}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {user.username}
+                    </p>
+                    {user.unreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="ml-2 h-5 min-w-[20px] text-xs flex items-center justify-center"
+                      >
+                        {user.unreadCount > 99 ? '99+' : user.unreadCount}
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500">
                     {user.isOnline ? 'Online' : formatLastSeen(user.lastSeen)}
                   </p>

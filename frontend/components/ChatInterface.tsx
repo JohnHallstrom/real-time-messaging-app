@@ -11,6 +11,7 @@ export interface ChatUser {
   username: string;
   isOnline: boolean;
   lastSeen: Date;
+  unreadCount: number;
 }
 
 interface ChatInterfaceProps {
@@ -69,6 +70,9 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
                   ? { ...u, isOnline: message.isOnline || false }
                   : u
               ));
+            } else if (message.type === "message" && message.recipientId === user.id) {
+              // Reload users to update unread counts
+              await loadUsers();
             }
           }
         } catch (err) {
@@ -78,6 +82,16 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
     } catch (err) {
       console.error('Failed to connect to realtime:', err);
     }
+  };
+
+  const handleSelectUser = (selectedUser: ChatUser) => {
+    setSelectedUser(selectedUser);
+    // Clear unread count for selected user immediately
+    setUsers(prev => prev.map(u => 
+      u.id === selectedUser.id 
+        ? { ...u, unreadCount: 0 }
+        : u
+    ));
   };
 
   const handleLogout = async () => {
@@ -114,7 +128,7 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
         <UserList
           users={users}
           selectedUser={selectedUser}
-          onSelectUser={setSelectedUser}
+          onSelectUser={handleSelectUser}
         />
       </div>
 
@@ -125,6 +139,7 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
             currentUser={user}
             otherUser={selectedUser}
             realtimeStream={realtimeStream}
+            onMessagesUpdate={loadUsers}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">

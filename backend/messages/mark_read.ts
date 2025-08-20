@@ -8,6 +8,7 @@ export interface MarkReadRequest {
 
 export interface MarkReadResponse {
   expiresAt: Date;
+  timeToRead: number;
 }
 
 // Marks a message as read and starts the disappearing timer.
@@ -54,7 +55,7 @@ export const markRead = api<MarkReadRequest, MarkReadResponse>(
       WHERE id = ${req.messageId}
     `;
 
-    return { expiresAt };
+    return { expiresAt, timeToRead: baseSeconds };
   }
 );
 

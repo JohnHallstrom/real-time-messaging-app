@@ -1,6 +1,5 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Eye, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Message } from './ChatWindow';
 
@@ -8,10 +7,18 @@ interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   timeLeft?: number;
-  onMarkAsRead: (messageId: number) => void;
 }
 
-export function MessageBubble({ message, isOwn, timeLeft, onMarkAsRead }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (timeLeft === 0) {
+      // Start fade out animation
+      setIsVisible(false);
+    }
+  }, [timeLeft]);
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -22,11 +29,17 @@ export function MessageBubble({ message, isOwn, timeLeft, onMarkAsRead }: Messag
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const canMarkAsRead = !isOwn && !message.isRead;
   const showTimer = message.isRead && message.expiresAt && timeLeft !== undefined;
+  const timeToReadSeconds = message.timeToRead || Math.max(5, Math.ceil(message.wordCount / 5) * 5);
 
   return (
-    <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+    <div 
+      className={cn(
+        "flex transition-all duration-500 ease-in-out",
+        isOwn ? "justify-end" : "justify-start",
+        !isVisible && "opacity-0 scale-95 transform translate-y-2"
+      )}
+    >
       <div className={cn("max-w-xs lg:max-w-md", isOwn ? "order-1" : "order-2")}>
         <div
           className={cn(
@@ -48,28 +61,18 @@ export function MessageBubble({ message, isOwn, timeLeft, onMarkAsRead }: Messag
               </div>
             )}
             
-            {message.isRead && !isOwn && (
+            {message.isRead && !isOwn && !showTimer && (
               <span className="text-green-500">Read</span>
             )}
           </div>
         </div>
         
-        {canMarkAsRead && (
-          <div className="mt-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onMarkAsRead(message.id)}
-              className="text-xs"
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Mark as read
-            </Button>
-          </div>
-        )}
-        
         <div className="text-xs text-gray-500 mt-1">
-          {message.wordCount} word{message.wordCount !== 1 ? 's' : ''}
+          {!message.isRead && !isOwn ? (
+            `${timeToReadSeconds}s to read once opened`
+          ) : (
+            `${message.wordCount} word${message.wordCount !== 1 ? 's' : ''}`
+          )}
         </div>
       </div>
     </div>

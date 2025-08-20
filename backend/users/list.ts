@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { usersDB } from "./db";
+import { SQLDatabase } from "encore.dev/storage/sqldb";
 
 export interface ListUsersRequest {
   token: string;
@@ -10,13 +11,16 @@ export interface User {
   username: string;
   isOnline: boolean;
   lastSeen: Date;
+  unreadCount: number;
 }
 
 export interface ListUsersResponse {
   users: User[];
 }
 
-// Lists all users with their online status.
+const messagesDB = SQLDatabase.named("messages");
+
+// Lists all users with their online status and unread message counts.
 export const list = api<ListUsersRequest, ListUsersResponse>(
   { expose: true, method: "POST", path: "/users/list" },
   async (req) => {
@@ -24,6 +28,12 @@ export const list = api<ListUsersRequest, ListUsersResponse>(
     if (!currentUserId) {
       throw APIError.unauthenticated("invalid token");
     }
+
+    // Clean up expired messages first
+    await messagesDB.exec`
+      DELETE FROM messages 
+      WHERE expires_at IS NOT NULL AND expires_at < NOW()
+    `;
 
     const users = await usersDB.queryAll<{
       id: number;
@@ -37,14 +47,28 @@ export const list = api<ListUsersRequest, ListUsersResponse>(
       ORDER BY is_online DESC, username ASC
     `;
 
-    return {
-      users: users.map(user => ({
-        id: user.id,
-        username: user.username,
-        isOnline: user.is_online,
-        lastSeen: user.last_seen,
-      })),
-    };
+    // Get unread message counts for each user
+    const usersWithUnread = await Promise.all(
+      users.map(async (user) => {
+        const unreadResult = await messagesDB.queryRow<{ count: number }>`
+          SELECT COUNT(*) as count
+          FROM messages
+          WHERE sender_id = ${user.id} 
+            AND recipient_id = ${currentUserId} 
+            AND is_read = FALSE
+        `;
+
+        return {
+          id: user.id,
+          username: user.username,
+          isOnline: user.is_online,
+          lastSeen: user.last_seen,
+          unreadCount: unreadResult?.count || 0,
+        };
+      })
+    );
+
+    return { users: usersWithUnread };
   }
 );
 
