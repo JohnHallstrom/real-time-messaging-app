@@ -103,49 +103,45 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
       );
 
       if (unreadMessages.length > 0) {
-        try {
-          const autoMarkResponse = await backend.messages.autoMarkRead({
-            token: currentUser.token,
-            messageIds: unreadMessages.map(msg => msg.id),
-          });
+        for (const message of unreadMessages) {
+          try {
+            const markReadResponse = await backend.messages.markRead({
+              token: currentUser.token,
+              messageId: message.id,
+            });
 
-          // Update messages with expiration info
-          const updatedMessages = messagesWithDates.map(msg => {
-            const markedMessage = autoMarkResponse.markedMessages.find(m => m.id === msg.id);
-            if (markedMessage) {
-              return {
-                ...msg,
-                isRead: true,
-                readAt: new Date(),
-                expiresAt: new Date(markedMessage.expiresAt),
-                timeToRead: markedMessage.timeToRead,
-              };
-            }
-            return msg;
-          });
+            // Update the message with expiration info
+            setMessages(prev => prev.map(msg => 
+              msg.id === message.id 
+                ? {
+                    ...msg,
+                    isRead: true,
+                    readAt: new Date(),
+                    expiresAt: markReadResponse.expiresAt,
+                    timeToRead: markReadResponse.timeToRead,
+                  }
+                : msg
+            ));
 
-          setMessages(updatedMessages);
-
-          // Broadcast read status for each marked message to both sender and recipient
-          if (realtimeStream) {
-            for (const markedMessage of autoMarkResponse.markedMessages) {
+            // Broadcast read status to both sender and recipient
+            if (realtimeStream) {
               await realtimeStream.send({
                 type: "message_read",
-                messageId: markedMessage.id,
-                senderId: markedMessage.senderId,
-                recipientId: markedMessage.recipientId,
-                expiresAt: markedMessage.expiresAt,
-                timeToRead: markedMessage.timeToRead,
+                messageId: message.id,
+                senderId: message.senderId,
+                recipientId: message.recipientId,
+                expiresAt: markReadResponse.expiresAt,
+                timeToRead: markReadResponse.timeToRead,
                 timestamp: new Date(),
               });
             }
+          } catch (err) {
+            console.error('Failed to mark message as read:', err);
           }
-
-          // Update unread counts in parent component
-          onMessagesUpdate();
-        } catch (err) {
-          console.error('Failed to auto-mark messages as read:', err);
         }
+
+        // Update unread counts in parent component
+        onMessagesUpdate();
       }
     } catch (err) {
       console.error('Failed to load messages:', err);

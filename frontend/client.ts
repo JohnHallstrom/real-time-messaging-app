@@ -145,7 +145,6 @@ export namespace auth {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
-import { autoMarkRead as api_messages_auto_mark_read_autoMarkRead } from "~backend/messages/auto_mark_read";
 import { list as api_messages_list_list } from "~backend/messages/list";
 import { markRead as api_messages_mark_read_markRead } from "~backend/messages/mark_read";
 import { send as api_messages_send_send } from "~backend/messages/send";
@@ -157,19 +156,9 @@ export namespace messages {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
-            this.autoMarkRead = this.autoMarkRead.bind(this)
             this.list = this.list.bind(this)
             this.markRead = this.markRead.bind(this)
             this.send = this.send.bind(this)
-        }
-
-        /**
-         * Automatically marks unread messages as read when user opens conversation.
-         */
-        public async autoMarkRead(params: RequestType<typeof api_messages_auto_mark_read_autoMarkRead>): Promise<ResponseType<typeof api_messages_auto_mark_read_autoMarkRead>> {
-            // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/messages/auto-mark-read`, {method: "POST", body: JSON.stringify(params)})
-            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_messages_auto_mark_read_autoMarkRead>
         }
 
         /**
