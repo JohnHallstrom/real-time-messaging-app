@@ -70,9 +70,18 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
                   ? { ...u, isOnline: message.isOnline || false }
                   : u
               ));
-            } else if (message.type === "message" && message.recipientId === user.id) {
-              // Reload users to update unread counts
-              await loadUsers();
+            } else if (message.type === "message") {
+              // Update unread counts when receiving a message
+              if (message.recipientId === user.id) {
+                // Increment unread count for sender (unless they're the selected user)
+                setUsers(prev => prev.map(u => 
+                  u.id === message.userId && (!selectedUser || selectedUser.id !== message.userId)
+                    ? { ...u, unreadCount: u.unreadCount + 1 }
+                    : u
+                ));
+              }
+            } else if (message.type === "message_read") {
+              // No need to update unread counts here as they're handled in ChatWindow
             }
           }
         } catch (err) {
@@ -92,6 +101,11 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
         ? { ...u, unreadCount: 0 }
         : u
     ));
+  };
+
+  const handleMessagesUpdate = async () => {
+    // Reload users to get updated unread counts
+    await loadUsers();
   };
 
   const handleLogout = async () => {
@@ -139,7 +153,7 @@ export function ChatInterface({ user, onLogout }: ChatInterfaceProps) {
             currentUser={user}
             otherUser={selectedUser}
             realtimeStream={realtimeStream}
-            onMessagesUpdate={loadUsers}
+            onMessagesUpdate={handleMessagesUpdate}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">

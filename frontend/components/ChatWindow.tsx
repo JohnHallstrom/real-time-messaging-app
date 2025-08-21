@@ -49,6 +49,8 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
           ((message.userId === otherUser.id && message.recipientId === currentUser.id) ||
            (message.userId === currentUser.id && message.recipientId === otherUser.id))) {
         await loadMessages();
+        // Update parent component's user list
+        onMessagesUpdate();
       } else if (message.type === "message_read") {
         // Update the specific message that was read for both sender and recipient
         setMessages(prev => prev.map(msg => {
@@ -76,7 +78,7 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
         console.error('Realtime stream error:', err);
       }
     })();
-  }, [realtimeStream, otherUser.id, currentUser.id]);
+  }, [realtimeStream, otherUser.id, currentUser.id, onMessagesUpdate]);
 
   const loadMessages = async () => {
     try {
@@ -139,7 +141,7 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
             }
           }
 
-          // Update unread counts
+          // Update unread counts in parent component
           onMessagesUpdate();
         } catch (err) {
           console.error('Failed to auto-mark messages as read:', err);
@@ -176,6 +178,8 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
       }
 
       await loadMessages();
+      // Update parent component's user list
+      onMessagesUpdate();
     } catch (err) {
       console.error('Failed to send message:', err);
     }
