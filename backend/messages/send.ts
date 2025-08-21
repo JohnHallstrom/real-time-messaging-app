@@ -14,6 +14,7 @@ export interface SendMessageResponse {
   recipientId: number;
   content: string;
   wordCount: number;
+  extraTime: number;
   createdAt: Date;
 }
 
@@ -32,6 +33,7 @@ export const send = api<SendMessageRequest, SendMessageResponse>(
 
     // Calculate word count
     const wordCount = req.content.trim().split(/\s+/).length;
+    const extraTime = req.extraTime || 0;
 
     const message = await messagesDB.queryRow<{
       id: number;
@@ -39,11 +41,12 @@ export const send = api<SendMessageRequest, SendMessageResponse>(
       recipient_id: number;
       content: string;
       word_count: number;
+      extra_time: number;
       created_at: Date;
     }>`
-      INSERT INTO messages (sender_id, recipient_id, content, word_count)
-      VALUES (${senderId}, ${req.recipientId}, ${req.content}, ${wordCount})
-      RETURNING id, sender_id, recipient_id, content, word_count, created_at
+      INSERT INTO messages (sender_id, recipient_id, content, word_count, extra_time)
+      VALUES (${senderId}, ${req.recipientId}, ${req.content}, ${wordCount}, ${extraTime})
+      RETURNING id, sender_id, recipient_id, content, word_count, extra_time, created_at
     `;
 
     if (!message) {
@@ -56,6 +59,7 @@ export const send = api<SendMessageRequest, SendMessageResponse>(
       recipientId: message.recipient_id,
       content: message.content,
       wordCount: message.word_count,
+      extraTime: message.extra_time,
       createdAt: message.created_at,
     };
   }

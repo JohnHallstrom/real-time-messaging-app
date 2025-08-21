@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Plus } from 'lucide-react';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, extraTime?: number) => void;
 }
 
 export function MessageInput({ onSendMessage }: MessageInputProps) {
@@ -18,7 +18,7 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
 
     setIsLoading(true);
     try {
-      await onSendMessage(message.trim());
+      await onSendMessage(message.trim(), extraTime);
       setMessage('');
       setExtraTime(0);
     } catch (err) {
@@ -69,7 +69,10 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
         
         {message.trim() && (
           <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Recipient will have {totalTime}s to read this message</span>
+            <span>
+              Recipient will have {totalTime}s to read this message
+              {extraTime > 0 && ` (${baseTime}s + ${extraTime}s extra)`}
+            </span>
             <Button
               type="button"
               variant="outline"

@@ -35,7 +35,8 @@ export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) 
   };
 
   const showTimer = message.isRead && message.expiresAt && timeLeft !== undefined;
-  const timeToReadSeconds = message.timeToRead || Math.max(5, Math.ceil(message.wordCount / 5) * 5);
+  const baseTimeToRead = Math.max(5, Math.ceil(message.wordCount / 5) * 5);
+  const totalTimeToRead = baseTimeToRead + message.extraTime;
 
   // Don't render if marked for removal
   if (shouldRemove) {
@@ -79,7 +80,8 @@ export function MessageBubble({ message, isOwn, timeLeft }: MessageBubbleProps) 
         
         {!message.isRead && !isOwn && (
           <div className="text-xs text-gray-500 mt-1">
-            {timeToReadSeconds}s to read once opened
+            {totalTimeToRead}s to read once opened
+            {message.extraTime > 0 && ` (${baseTimeToRead}s + ${message.extraTime}s extra)`}
           </div>
         )}
       </div>

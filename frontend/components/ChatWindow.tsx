@@ -13,6 +13,7 @@ export interface Message {
   recipientId: number;
   content: string;
   wordCount: number;
+  extraTime: number;
   isRead: boolean;
   readAt?: Date;
   expiresAt?: Date;
@@ -151,12 +152,13 @@ export function ChatWindow({ currentUser, otherUser, realtimeStream, onMessagesU
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, extraTime: number = 0) => {
     try {
       const response = await backend.messages.send({
         token: currentUser.token,
         recipientId: otherUser.id,
         content,
+        extraTime,
       });
 
       // Broadcast to realtime

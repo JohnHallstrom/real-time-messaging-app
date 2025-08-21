@@ -40,17 +40,19 @@ export const autoMarkRead = api<AutoMarkReadRequest, AutoMarkReadResponse>(
         sender_id: number;
         recipient_id: number;
         word_count: number;
+        extra_time: number;
         is_read: boolean;
       }>`
-        SELECT id, sender_id, recipient_id, word_count, is_read
+        SELECT id, sender_id, recipient_id, word_count, extra_time, is_read
         FROM messages
         WHERE id = ${messageId} AND recipient_id = ${currentUserId} AND is_read = FALSE
       `;
 
       if (message) {
-        // Calculate expiration time based on word count (divisible by 5)
+        // Calculate expiration time based on word count (divisible by 5) plus extra time
         const baseSeconds = Math.max(5, Math.ceil(message.word_count / 5) * 5);
-        const expiresAt = new Date(Date.now() + baseSeconds * 1000);
+        const totalSeconds = baseSeconds + message.extra_time;
+        const expiresAt = new Date(Date.now() + totalSeconds * 1000);
 
         // Mark as read and set expiration
         await messagesDB.exec`
@@ -64,7 +66,7 @@ export const autoMarkRead = api<AutoMarkReadRequest, AutoMarkReadResponse>(
           senderId: message.sender_id,
           recipientId: message.recipient_id,
           expiresAt,
-          timeToRead: baseSeconds,
+          timeToRead: totalSeconds,
         });
       }
     }

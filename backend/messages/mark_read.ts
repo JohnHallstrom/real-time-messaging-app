@@ -25,9 +25,10 @@ export const markRead = api<MarkReadRequest, MarkReadResponse>(
       id: number;
       recipient_id: number;
       word_count: number;
+      extra_time: number;
       is_read: boolean;
     }>`
-      SELECT id, recipient_id, word_count, is_read
+      SELECT id, recipient_id, word_count, extra_time, is_read
       FROM messages
       WHERE id = ${req.messageId}
     `;
@@ -44,9 +45,10 @@ export const markRead = api<MarkReadRequest, MarkReadResponse>(
       throw APIError.invalidArgument("message already read");
     }
 
-    // Calculate expiration time based on word count (divisible by 5)
+    // Calculate expiration time based on word count (divisible by 5) plus extra time
     const baseSeconds = Math.max(5, Math.ceil(message.word_count / 5) * 5);
-    const expiresAt = new Date(Date.now() + baseSeconds * 1000);
+    const totalSeconds = baseSeconds + message.extra_time;
+    const expiresAt = new Date(Date.now() + totalSeconds * 1000);
 
     // Mark as read and set expiration
     await messagesDB.exec`
@@ -55,7 +57,7 @@ export const markRead = api<MarkReadRequest, MarkReadResponse>(
       WHERE id = ${req.messageId}
     `;
 
-    return { expiresAt, timeToRead: baseSeconds };
+    return { expiresAt, timeToRead: totalSeconds };
   }
 );
 

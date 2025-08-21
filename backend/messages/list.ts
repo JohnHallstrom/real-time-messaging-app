@@ -12,6 +12,7 @@ export interface Message {
   recipientId: number;
   content: string;
   wordCount: number;
+  extraTime: number;
   isRead: boolean;
   readAt?: Date;
   expiresAt?: Date;
@@ -43,12 +44,13 @@ export const list = api<ListMessagesRequest, ListMessagesResponse>(
       recipient_id: number;
       content: string;
       word_count: number;
+      extra_time: number;
       is_read: boolean;
       read_at: Date | null;
       expires_at: Date | null;
       created_at: Date;
     }>`
-      SELECT id, sender_id, recipient_id, content, word_count, is_read, read_at, expires_at, created_at
+      SELECT id, sender_id, recipient_id, content, word_count, extra_time, is_read, read_at, expires_at, created_at
       FROM messages
       WHERE (sender_id = ${currentUserId} AND recipient_id = ${req.otherUserId})
          OR (sender_id = ${req.otherUserId} AND recipient_id = ${currentUserId})
@@ -62,6 +64,7 @@ export const list = api<ListMessagesRequest, ListMessagesResponse>(
         recipientId: msg.recipient_id,
         content: msg.content,
         wordCount: msg.word_count,
+        extraTime: msg.extra_time,
         isRead: msg.is_read,
         readAt: msg.read_at || undefined,
         expiresAt: msg.expires_at || undefined,
